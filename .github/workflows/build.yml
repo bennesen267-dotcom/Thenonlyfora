@@ -37,6 +37,9 @@ jobs:
             -o gradle/wrapper/gradle-wrapper.jar
 
       - name: Build
+        env:
+          JAVA_OPTS: ""
+          DEFAULT_JVM_OPTS: ""
         run: |
           chmod +x gradlew
           ./gradlew build --no-daemon
