@@ -14,7 +14,7 @@ jobs:
         run: |
           ZIP=$(find . -maxdepth 1 -name "*.zip" | head -1)
           if [ -z "$ZIP" ]; then
-            echo "No zip found, assuming files are already extracted."
+            echo "No zip found."
             exit 0
           fi
           unzip -o "$ZIP"
@@ -24,6 +24,25 @@ jobs:
               break
             fi
           done
+
+      - name: Fix gradlew
+        run: |
+          cat > gradlew << 'WRAPPER'
+          #!/bin/sh
+          APP_HOME="$(pwd -P)"
+          CLASSPATH="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+          if [ -n "$JAVA_HOME" ]; then
+            JAVACMD="$JAVA_HOME/bin/java"
+          else
+            JAVACMD="java"
+          fi
+          exec "$JAVACMD" -Xmx64m -Xms64m \
+            "-Dorg.gradle.appname=gradlew" \
+            -classpath "$CLASSPATH" \
+            org.gradle.wrapper.GradleWrapperMain \
+            "$@"
+          WRAPPER
+          chmod +x gradlew
 
       - uses: actions/setup-java@v4
         with:
@@ -37,12 +56,7 @@ jobs:
             -o gradle/wrapper/gradle-wrapper.jar
 
       - name: Build
-        env:
-          JAVA_OPTS: ""
-          DEFAULT_JVM_OPTS: ""
-        run: |
-          chmod +x gradlew
-          ./gradlew build --no-daemon
+        run: ./gradlew build --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
