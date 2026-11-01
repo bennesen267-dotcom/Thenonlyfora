@@ -1,0 +1,48 @@
+name: Build Bereton
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract zip
+        run: |
+          ZIP=$(find . -maxdepth 1 -name "*.zip" | head -1)
+          if [ -z "$ZIP" ]; then
+            echo "No zip found, assuming files are already extracted."
+            exit 0
+          fi
+          unzip -o "$ZIP"
+          for DIR in bereton-fixed bereton; do
+            if [ -d "$DIR" ]; then
+              cp -rn "$DIR/." .
+              break
+            fi
+          done
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Download gradle wrapper jar
+        run: |
+          mkdir -p gradle/wrapper
+          curl -sL "https://github.com/gradle/gradle/raw/v8.11.0/gradle/wrapper/gradle-wrapper.jar" \
+            -o gradle/wrapper/gradle-wrapper.jar
+
+      - name: Build
+        run: |
+          chmod +x gradlew
+          ./gradlew build --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bereton-jar
+          path: build/libs/bereton-*.jar
+          if-no-files-found: error
